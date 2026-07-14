@@ -1,0 +1,395 @@
+<title>Vocab → CSV</title>
+<style>
+  :root {
+    --bg: #f5f7fa;
+    --surface: #ffffff;
+    --surface-2: #eef2f7;
+    --border: #dde3ec;
+    --text: #1b2430;
+    --muted: #5c6672;
+    --accent: #3b6ea5;
+    --accent-ink: #2b567f;
+    --accent-soft: #e9f1f9;
+    --good: #2f8f5b;
+    --danger: #c0492f;
+    --shadow: 0 1px 2px rgba(20, 32, 48, .06), 0 8px 24px rgba(20, 32, 48, .06);
+    --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Times New Roman", serif;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --mono: ui-monospace, "SF Mono", "Cascadia Code", "Roboto Mono", Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #12151b;
+      --surface: #191d25;
+      --surface-2: #21262f;
+      --border: #2b313c;
+      --text: #e6eaf0;
+      --muted: #98a2b1;
+      --accent: #6fa3d6;
+      --accent-ink: #8fbbe6;
+      --accent-soft: #1c2836;
+      --good: #57b880;
+      --danger: #e0755d;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 10px 30px rgba(0,0,0,.35);
+    }
+  }
+  :root[data-theme="light"] {
+    --bg: #f5f7fa; --surface: #ffffff; --surface-2: #eef2f7; --border: #dde3ec;
+    --text: #1b2430; --muted: #5c6672; --accent: #3b6ea5; --accent-ink: #2b567f;
+    --accent-soft: #e9f1f9; --good: #2f8f5b; --danger: #c0492f;
+    --shadow: 0 1px 2px rgba(20,32,48,.06), 0 8px 24px rgba(20,32,48,.06);
+  }
+  :root[data-theme="dark"] {
+    --bg: #12151b; --surface: #191d25; --surface-2: #21262f; --border: #2b313c;
+    --text: #e6eaf0; --muted: #98a2b1; --accent: #6fa3d6; --accent-ink: #8fbbe6;
+    --accent-soft: #1c2836; --good: #57b880; --danger: #e0755d;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 10px 30px rgba(0,0,0,.35);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 28px 20px 64px; }
+
+  header { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 22px; }
+  .title { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+  h1 {
+    font-family: var(--serif);
+    font-weight: 600;
+    font-size: clamp(1.7rem, 1.2rem + 1.6vw, 2.4rem);
+    letter-spacing: -0.01em;
+    margin: 0;
+    text-wrap: balance;
+  }
+  .sub { color: var(--muted); font-size: .95rem; max-width: 60ch; }
+  .count {
+    font-family: var(--mono);
+    font-size: .82rem;
+    background: var(--accent-soft);
+    color: var(--accent-ink);
+    border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
+    padding: 5px 11px;
+    border-radius: 999px;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; align-items: start; }
+  @media (max-width: 880px) { .grid { grid-template-columns: 1fr; } }
+
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+  .panel-head {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface-2);
+  }
+  .panel-head h2 {
+    margin: 0; font-size: .78rem; font-weight: 600; text-transform: uppercase;
+    letter-spacing: .08em; color: var(--muted);
+  }
+
+  textarea {
+    width: 100%;
+    border: 0;
+    resize: vertical;
+    background: transparent;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: .88rem;
+    line-height: 1.6;
+    padding: 14px;
+    min-height: 340px;
+    outline: none;
+  }
+  textarea::placeholder { color: color-mix(in srgb, var(--muted) 75%, transparent); }
+  #csv { min-height: 150px; white-space: pre; }
+
+  .toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .toolbar .spacer { flex: 1; }
+  button, select, label.check {
+    font-family: var(--sans); font-size: .85rem;
+    border: 1px solid var(--border); background: var(--surface);
+    color: var(--text); border-radius: 9px; padding: 7px 12px;
+    cursor: pointer; display: inline-flex; align-items: center; gap: 7px;
+    transition: background .12s, border-color .12s, transform .05s;
+  }
+  button:hover, select:hover { border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); }
+  button:active { transform: translateY(1px); }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+  button.primary:hover { background: var(--accent-ink); border-color: var(--accent-ink); }
+  button.ghost { background: transparent; }
+  label.check { cursor: pointer; user-select: none; }
+  label.check input { accent-color: var(--accent); width: 15px; height: 15px; margin: 0; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 18px 0; }
+
+  .table-scroll { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: .86rem; }
+  thead th {
+    text-align: left; font-weight: 600; color: var(--muted);
+    text-transform: uppercase; letter-spacing: .05em; font-size: .68rem;
+    padding: 9px 12px; border-bottom: 1px solid var(--border);
+    background: var(--surface-2); position: sticky; top: 0; white-space: nowrap;
+  }
+  tbody td { padding: 9px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  tbody tr:last-child td { border-bottom: 0; }
+  tbody tr:hover td { background: color-mix(in srgb, var(--accent-soft) 55%, transparent); }
+  td.word { font-weight: 600; }
+  td.ipa { font-family: var(--mono); color: var(--accent-ink); white-space: nowrap; }
+  td.pos { }
+  td.pos span {
+    font-size: .72rem; padding: 2px 8px; border-radius: 999px;
+    background: var(--surface-2); border: 1px solid var(--border); color: var(--muted);
+    white-space: nowrap; font-style: italic;
+  }
+  td.ex { color: var(--muted); max-width: 32ch; }
+  .empty { padding: 40px 16px; text-align: center; color: var(--muted); font-size: .9rem; }
+
+  .toast {
+    position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: var(--text); color: var(--bg); padding: 9px 16px; border-radius: 999px;
+    font-size: .85rem; font-weight: 500; opacity: 0; pointer-events: none;
+    transition: opacity .2s, transform .2s;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  .foot { margin-top: 22px; color: var(--muted); font-size: .8rem; max-width: 70ch; }
+  code { font-family: var(--mono); background: var(--surface-2); padding: 1px 5px; border-radius: 5px; font-size: .9em; }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="title">
+      <h1>Vocab&nbsp;→&nbsp;CSV</h1>
+      <p class="sub">Dán danh sách từ vựng, tách thành bảng và xuất CSV. Dòng trạng thái <code>Cần ôn</code> được bỏ đi.</p>
+    </div>
+    <span class="count" id="count">0 từ</span>
+  </header>
+
+  <div class="controls">
+    <label class="check"><input type="checkbox" id="opt-header" checked> Hàng tiêu đề</label>
+    <label class="check"><input type="checkbox" id="opt-bom" checked> BOM (Excel)</label>
+    <select id="opt-delim" aria-label="Dấu phân tách">
+      <option value=",">Dấu phẩy&nbsp; (,)</option>
+      <option value=";">Chấm phẩy (;)</option>
+      <option value="\t">Tab</option>
+    </select>
+    <div class="spacer"></div>
+    <button class="ghost" id="btn-sample">Nạp ví dụ</button>
+    <button class="ghost" id="btn-clear">Xoá</button>
+    <button id="btn-copy">Copy CSV</button>
+    <button class="primary" id="btn-download">Tải .csv</button>
+  </div>
+
+  <div class="grid">
+    <section class="panel">
+      <div class="panel-head"><h2>Dán vào đây</h2></div>
+      <textarea id="input" spellcheck="false" placeholder="abide by&#10;Cần ôn&#10;verb&#10;abide by&#10;/əˈbaid bai/&#10;tuân theo&#10;&quot;The two parties agreed to abide by the judge's decision.&quot;&#10;Hai bên đồng ý sẽ tôn trọng phán quyết của quan tòa."></textarea>
+    </section>
+
+    <div style="display:flex; flex-direction:column; gap:18px; min-width:0;">
+      <section class="panel">
+        <div class="panel-head"><h2>Xem trước</h2></div>
+        <div class="table-scroll" id="preview"></div>
+      </section>
+      <section class="panel">
+        <div class="panel-head">
+          <h2>CSV</h2>
+          <button class="ghost" id="btn-copy2" style="padding:4px 10px; font-size:.78rem;">Copy</button>
+        </div>
+        <textarea id="csv" readonly spellcheck="false" placeholder="Kết quả CSV sẽ hiện ở đây…"></textarea>
+      </section>
+    </div>
+  </div>
+
+  <p class="foot">
+    Mỗi mục cần các dòng theo thứ tự: <strong>từ · Cần ôn · loại từ · (từ lặp lại) · phiên âm · nghĩa · ví dụ EN (trong ngoặc kép) · ví dụ VI</strong>.
+    Cột xuất ra: Từ, Loại từ, Phiên âm, Nghĩa, Ví dụ (EN), Ví dụ (VI) — không gồm dòng “Cần ôn”. Dòng trống được bỏ qua.
+  </p>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  const SAMPLE = `abide by
+Cần ôn
+verb
+abide by
+
+/əˈbaid bai/
+
+tuân theo
+
+"The two parties agreed to abide by the judge's decision."
+
+Hai bên đồng ý sẽ tôn trọng phán quyết của quan tòa.
+
+agree
+Cần ôn
+verb
+agree
+
+/əˈɡriː/
+
+đồng ý, tán thành, bằng lòng, thoả thuận
+
+"Teenagers and their parents rarely agree."
+
+Bọn tuổi teen và phụ huynh hiếm khi cùng quan điểm.`;
+
+  const HEADERS = ["Từ", "Loại từ", "Phiên âm", "Nghĩa", "Ví dụ (EN)", "Ví dụ (VI)"];
+  // Status lines to drop (the "position of the review word").
+  const STATUS = /^(cần ôn|đã thuộc|đã học|cần học|chưa học)$/i;
+  const POS = /^(verb|noun|adjective|adverb|pronoun|preposition|conjunction|interjection|exclamation|determiner|article|number|phrase|idiom|phrasal verb|abbreviation|prefix|suffix)$/i;
+  const IPA = /^\/.*\/[.,;:]?$/;
+
+  const $ = (id) => document.getElementById(id);
+  const input = $("input");
+
+  function stripQuotes(s) {
+    return s.replace(/^["“”'‘’]+/, "").replace(/["“”'‘’]+$/, "").trim();
+  }
+
+  function parse(text) {
+    const lines = text.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
+    // entry boundaries = the line right before a STATUS line (that line is the headword)
+    const starts = [];
+    for (let i = 0; i < lines.length; i++) {
+      if (STATUS.test(lines[i]) && i - 1 >= 0) starts.push(i - 1);
+    }
+    // fallback: no status markers found → treat the whole thing as one loose block
+    const entries = [];
+    for (let s = 0; s < starts.length; s++) {
+      const from = starts[s];
+      const to = s + 1 < starts.length ? starts[s + 1] : lines.length;
+      const block = lines.slice(from, to);
+      const word = block[0] || "";
+      let pos = "", ipa = "", meaning = "", exEn = "", exVi = "";
+      for (let k = 1; k < block.length; k++) {
+        const ln = block[k];
+        if (STATUS.test(ln)) continue;
+        if (ln === word) continue;                 // duplicated headword
+        if (IPA.test(ln) || /^\/.+/.test(ln)) { if (!ipa) ipa = ln; continue; }
+        if (!pos && POS.test(ln)) { pos = ln; continue; }
+        if (/^["“”]/.test(ln)) { if (!exEn) exEn = stripQuotes(ln); continue; }
+        if (exEn && !exVi) { exVi = ln; continue; }
+        if (!meaning) { meaning = ln; continue; }
+        // extra lines: append to meaning if example not yet reached, else to VI example
+        if (!exEn) meaning += " " + ln;
+        else if (exVi) exVi += " " + ln;
+      }
+      entries.push([word, pos, ipa, meaning, exEn, exVi]);
+    }
+    return entries;
+  }
+
+  function csvField(v, delim) {
+    const s = String(v ?? "");
+    if (s.includes('"') || s.includes("\n") || s.includes("\r") || s.includes(delim)) {
+      return '"' + s.replace(/"/g, '""') + '"';
+    }
+    return s;
+  }
+
+  function toCSV(rows) {
+    const delim = $("opt-delim").value === "\\t" ? "\t" : $("opt-delim").value;
+    const out = [];
+    if ($("opt-header").checked) out.push(HEADERS.map(h => csvField(h, delim)).join(delim));
+    for (const r of rows) out.push(r.map(c => csvField(c, delim)).join(delim));
+    return out.join("\n");
+  }
+
+  function renderTable(rows) {
+    const el = $("preview");
+    if (!rows.length) {
+      el.innerHTML = '<div class="empty">Chưa có dữ liệu. Dán danh sách hoặc bấm “Nạp ví dụ”.</div>';
+      return;
+    }
+    let html = '<table><thead><tr>' + HEADERS.map(h => `<th>${esc(h)}</th>`).join("") + '</tr></thead><tbody>';
+    for (const r of rows) {
+      html += "<tr>"
+        + `<td class="word">${esc(r[0])}</td>`
+        + `<td class="pos">${r[1] ? `<span>${esc(r[1])}</span>` : ""}</td>`
+        + `<td class="ipa">${esc(r[2])}</td>`
+        + `<td>${esc(r[3])}</td>`
+        + `<td class="ex">${esc(r[4])}</td>`
+        + `<td class="ex">${esc(r[5])}</td>`
+        + "</tr>";
+    }
+    html += "</tbody></table>";
+    el.innerHTML = html;
+  }
+
+  function esc(s) {
+    return String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  }
+
+  let currentRows = [];
+  function refresh() {
+    currentRows = parse(input.value);
+    renderTable(currentRows);
+    $("csv").value = currentRows.length ? toCSV(currentRows) : "";
+    $("count").textContent = currentRows.length + (currentRows.length === 1 ? " từ" : " từ");
+  }
+
+  let toastTimer;
+  function toast(msg) {
+    const t = $("toast");
+    t.textContent = msg;
+    t.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove("show"), 1600);
+  }
+
+  async function copyText(text) {
+    if (!text) { toast("Chưa có gì để copy"); return; }
+    try {
+      await navigator.clipboard.writeText(text);
+      toast("Đã copy CSV");
+    } catch {
+      const ta = document.createElement("textarea");
+      ta.value = text; document.body.appendChild(ta); ta.select();
+      document.execCommand("copy"); ta.remove();
+      toast("Đã copy CSV");
+    }
+  }
+
+  input.addEventListener("input", refresh);
+  ["opt-header", "opt-bom", "opt-delim"].forEach(id => $(id).addEventListener("change", refresh));
+  $("btn-sample").addEventListener("click", () => { input.value = SAMPLE; refresh(); });
+  $("btn-clear").addEventListener("click", () => { input.value = ""; refresh(); input.focus(); });
+  $("btn-copy").addEventListener("click", () => copyText($("csv").value));
+  $("btn-copy2").addEventListener("click", () => copyText($("csv").value));
+  $("btn-download").addEventListener("click", () => {
+    const csv = $("csv").value;
+    if (!csv) { toast("Chưa có dữ liệu"); return; }
+    const bom = $("opt-bom").checked ? "﻿" : "";
+    const blob = new Blob([bom + csv], { type: "text/csv;charset=utf-8;" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "vocab.csv";
+    a.click();
+    URL.revokeObjectURL(a.href);
+    toast("Đã tải vocab.csv");
+  });
+
+  refresh();
+</script>
